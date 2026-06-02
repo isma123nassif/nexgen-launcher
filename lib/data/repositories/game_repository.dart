@@ -9,10 +9,12 @@ class GameRepository {
   final GamezFullScraper _gamezFullScraper;
 
   GameRepository({
-    required this._hiveService,
-    required this._piviGamesScraper,
-    required this._gamezFullScraper,
-  });
+    required HiveService hiveService,
+    required PiviGamesScraper piviGamesScraper,
+    required GamezFullScraper gamezFullScraper,
+  })  : _hiveService = hiveService,
+        _piviGamesScraper = piviGamesScraper,
+        _gamezFullScraper = gamezFullScraper;
 
   Future<List<Game>> fetchAndCacheGames({int page = 1}) async {
     final results = await Future.wait([
