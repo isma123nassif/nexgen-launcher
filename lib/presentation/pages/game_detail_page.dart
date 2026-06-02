@@ -1,13 +1,24 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/game.dart';
+import '../../services/process_manager_service.dart';
 import '../widgets/backdrop_widget.dart';
+import '../providers/game_provider.dart';
 
-class GameDetailPage extends StatelessWidget {
+class GameDetailPage extends ConsumerStatefulWidget {
   const GameDetailPage({super.key, required this.game});
 
   final Game game;
+
+  @override
+  ConsumerState<GameDetailPage> createState() => _GameDetailPageState();
+}
+
+class _GameDetailPageState extends ConsumerState<GameDetailPage> {
+  bool _launching = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +35,7 @@ class GameDetailPage extends StatelessWidget {
           return KeyEventResult.ignored;
         },
         child: BackdropWidget(
-          imageUrl: game.backdropUrl,
+          imageUrl: widget.game.backdropUrl,
           child: _buildContent(context),
         ),
       ),
@@ -32,6 +43,8 @@ class GameDetailPage extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final game = widget.game;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
       child: SingleChildScrollView(
@@ -119,8 +132,18 @@ class GameDetailPage extends StatelessWidget {
               children: [
                 if (game.isInstalled)
                   ElevatedButton.icon(
-                    onPressed: null,
-                    icon: const Icon(Icons.play_arrow),
+                    onPressed:
+                        _launching ? null : () => _launchGame(context),
+                    icon: _launching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.play_arrow),
                     label: const Text('PLAY'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE53935),
@@ -164,5 +187,31 @@ class GameDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _launchGame(BuildContext context) async {
+    final game = widget.game;
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _launching = true);
+
+    try {
+      final hiveService = ref.read(hiveServiceProvider).asData?.value;
+      if (hiveService == null) return;
+
+      await ProcessManagerService.instance.launchGame(game, hiveService);
+
+      ref.read(isGameRunningProvider.notifier).state = true;
+      ref.read(activeGameIdProvider.notifier).state = game.id;
+    } on ProcessException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to launch: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _launching = false);
+      }
+    }
   }
 }

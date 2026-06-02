@@ -4,6 +4,7 @@ import '../../data/sources/local/hive_service.dart';
 import '../../data/sources/remote/pivigames_scraper.dart';
 import '../../data/sources/remote/gamezfull_scraper.dart';
 import '../../data/repositories/game_repository.dart';
+import '../../services/process_manager_service.dart';
 
 final hiveServiceProvider = FutureProvider<HiveService>((ref) async {
   try {
@@ -60,3 +61,11 @@ final filteredGamesProvider = Provider.autoDispose<List<Game>>((ref) {
 final currentPageProvider = StateProvider<int>((ref) => 1);
 
 final selectedGameIdProvider = StateProvider<String?>((ref) => null);
+
+final processManagerProvider = Provider<ProcessManagerService>((ref) {
+  return ProcessManagerService.instance;
+});
+
+final isGameRunningProvider = StateProvider<bool>((ref) => false);
+
+final activeGameIdProvider = StateProvider<String?>((ref) => null);
